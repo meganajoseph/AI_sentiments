@@ -1,0 +1,7 @@
+---
+title: "AI-Generated Artwork"
+format: pdf
+editor: visual
+bibliography: references.bib
+number-sections: true
+---
