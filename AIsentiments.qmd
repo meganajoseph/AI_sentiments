@@ -1,0 +1,163 @@
+---
+title: "AI Sentiments"
+subtitle: "Math 261B Final Project"
+author: "Megan Joseph, Robert Yav, Christie Ngo"
+thanks: "Project repository available at: [https://github.com/meganajoseph/AI_sentiments]"
+date: today
+date-format: long
+abstract: "abstract here "
+format: 
+  pdf:
+    fig-pos: "H"
+    number-sections: true
+bibliography: references.bib
+editor: 
+  markdown: 
+    wrap: 72
+---
+
+```{r}
+#| include: false
+#| echo: false
+#| warning: false
+#| message: false
+
+library(readxl)
+library(pwr)
+library(tidyverse)
+library(ez)
+library(ggpubr)
+library(rstatix)
+library(knitr)
+library(kableExtra)
+```
+
+# Introduction
+# Literature Review
+# Study Design
+# Statistical Analysis Plan and Power Analysis
+# Reanalysis
+# Discussion
+# References
+
+```{r}
+#| echo: false
+study2<- read.csv("data/Study2_Cleaned.csv")
+```
+
+
+## Study 2
+### Friedman's Test
+```{r}
+#| echo: false
+#| include: false
+colnames(study2)[319] <- "superpainter"
+colnames(study2)[318] <- "ai"
+colnames(study2)[317] <- "human"
+colnames(study2)[2] <- "id"
+
+study2_p1 <- data.frame(study2$human,study2$ai,study2$superpainter)
+study2_p1 <- data.matrix(study2_p1)
+friedman.test(study2_p1)
+
+#Effect size W
+79.633/(60*(3-1))
+```
+### Data Wrangling
+```{r}
+#| echo: false
+#| include: false
+df <- study2
+df <-df %>%
+  pivot_longer(
+    cols=contains("_"),
+    names_to = c("painting",".value"),
+    names_sep = "_"
+  ) %>%
+  mutate(painting = str_remove_all(painting, "X")) %>%
+  mutate(painting = as.integer(painting)) %>%
+  mutate(block = case_when(
+    painting <= 29 ~ 1L,
+    painting <= 55 ~ 2L,
+    painting <= 81 ~ 3L
+  )) %>%
+  mutate(condition = case_when(
+    block == 1 ~ "human",
+    block == 2 ~ "ai",
+    block == 3 ~ "superpainter"
+  ))
+
+
+participant_means <- df %>%
+  group_by(id, condition) %>%
+  summarise(
+    creativity = mean(creativity, na.rm = TRUE),
+    aesthetic  = mean(aesthetic,  na.rm = TRUE),
+    liking     = mean(liking,     na.rm = TRUE),
+    refinement = mean(refinement, na.rm = TRUE),
+    .groups = "drop"
+  ) %>%
+  mutate(
+    id        = as.factor(id),
+    condition = as.factor(condition)
+  )
+
+
+# generate plots
+
+plot_data <- participant_means %>%
+  pivot_longer(cols=c(creativity,aesthetic,liking,refinement)) %>%
+  group_by(condition,name) %>%
+  summarize(N=length(value),Ratings=round(mean(value),2), sd=round(sd(value),2))
+  
+
+```
+
+### Plot
+```{r fig-study2}
+#| echo: false
+ggplot(plot_data, aes(x=condition,y=Ratings, fill=condition))+
+  facet_wrap((~name)) +
+  theme_minimal(base_size=13) +
+  scale_fill_manual(values=c(
+    "human" = "red3",
+    "ai" = "deepskyblue",
+    "superpainter" = "seagreen"
+  ))+
+  geom_col(width=.5,color="black")+
+  geom_errorbar(aes(ymin=Ratings-sd,ymax=Ratings+sd),width=.15)
+
+```
+
+### Summary Table
+```{r}
+#| echo: false
+kable(plot_data) %>%
+  collapse_rows(columns=1:2)
+
+```
+### ANOVA on aggregated results, repeated measures within condition
+``` {r}
+#| echo: false
+#| include: false
+# Repeated measures within condition
+
+#creativity
+r1=ezANOVA(data = participant_means, dv = creativity, wid = id, within = condition, type = 3)
+#aesthetic
+r2=ezANOVA(data = participant_means, dv = aesthetic,  wid = id, within = condition, type = 3)
+#liking
+r3=ezANOVA(data = participant_means, dv = liking,     wid = id, within = condition, type = 3)
+#refinement
+r4=ezANOVA(data = participant_means, dv = refinement, wid = id, within = condition, type = 3)
+
+results=data.frame(rating=c("Creativity", "Aesthetic", "Liking", "Refinement"))
+results=cbind(results,rbind(r1$ANOVA[2:5],r2$ANOVA[2:5],r3$ANOVA[2:5],r4$ANOVA[2:5]))
+results=rbind(r1$ANOVA[2:5],r2$ANOVA[2:5],r3$ANOVA[2:5],r4$ANOVA[2:5])
+rownames(results) <- NULL
+kable(results)
+
+```
+
+
+The `echo: false` option disables the printing of code (only output is displayed).
