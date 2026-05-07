@@ -85,6 +85,12 @@ study2<- read.csv("data/Study2_Cleaned.csv")
 
 
 ## Study 2
+Our reanalysis of study 2 started with a Friedman test on the manipulation check, a difference between the human, AI, and superpainter perceived effort rankings. The Friedman test statistic is calculated as follows: $$\chi^2=\frac{12}{nK(K+1}\sum R^2_j-3n(K+1)$$
+Where
+n= number of participants
+K = number of conditions
+$R^2_j$ = the squared rank sums
+
 ### Friedman's Test
 ```{r}
 #| echo: false
@@ -150,6 +156,8 @@ plot_data <- participant_means %>%
 
 ```
 
+
+
 ### Plot Comparison
 ```{r fig-study2f1}
 #| echo: false
@@ -164,11 +172,11 @@ ggplot(plot_data, aes(x=condition,y=Ratings, fill=condition))+
   geom_col(width=.5,color="black")+
   geom_errorbar(aes(ymin=Ratings-sd,ymax=Ratings+sd),width=.15)
 ```
-```{r figoriginalS5}
+```{r fig-originalS5}
 #| echo: false
 include_graphics("images/figS5.png")
 ```
-```{r figoriginal2}
+```{r fig-original2}
 #| echo: false
 include_graphics("images/fig2.png")
 ```
