@@ -26,6 +26,14 @@ library(tidyverse)
 library(ggpubr)
 library(knitr)
 library(kableExtra)
+
+library(ggplot2)
+library(tidyr)
+library(forcats)
+library(patchwork)
+library(pwr)
+library(readxl)
+library(dplyr)
 ```
 
 # Introduction
@@ -120,11 +128,7 @@ These regression plots and significance in paired t-tests for differences in mea
 
 ```{r, echo = FALSE, results='hide'}
 ## DATA CLEANING FOR STUDIES
-library(pwr)
 pwr.t.test(n=60, sig.level=0.05, power=0.8, type="paired")
-
-library(readxl)
-library(dplyr)
 
 # Create the dictionary
 translation_map <- c(
@@ -181,10 +185,10 @@ translate_columns <- function(df) {
 }
 
 # Read in Data Frames
-ai1 = as.data.frame(read_excel("C:\\Users\\chris\\Documents\\MAT 261B\\Project_Data\\Study1.xlsx"))
-ai2_a = as.data.frame(read_excel("C:\\Users\\chris\\Documents\\MAT 261B\\Project_Data\\Study2.xlsx", sheet = "orderA"))
-ai2_b = as.data.frame(read_excel("C:\\Users\\chris\\Documents\\MAT 261B\\Project_Data\\Study2.xlsx", sheet = "orderB"))
-ai2_c = as.data.frame(read_excel("C:\\Users\\chris\\Documents\\MAT 261B\\Project_Data\\Study2.xlsx", sheet = "orderC"))
+ai1 = as.data.frame(read_excel("data/Study1.xlsx"))
+ai2_a = as.data.frame(read_excel("data/Study2.xlsx", sheet = "orderA"))
+ai2_b = as.data.frame(read_excel("data/Study2.xlsx", sheet = "orderB"))
+ai2_c = as.data.frame(read_excel("data/Study2.xlsx", sheet = "orderC"))
 
 # Apply to your dataframes
 colnames(ai2_a) <- translate_columns(ai2_a)
@@ -195,9 +199,9 @@ ai2 = bind_rows(ai2_a, ai2_b, ai2_c)
 
 write.csv(ai1, file="Study1_Cleaned.csv", row.names = FALSE)
 
-ai3 = as.data.frame(read_excel("C:\\Users\\chris\\Documents\\MAT 261B\\Project_Data\\Study3.xlsx"))
-ai4 = as.data.frame(read_excel("C:\\Users\\chris\\Documents\\MAT 261B\\Project_Data\\Study4.xlsx"))
-ai5 = as.data.frame(read_excel("C:\\Users\\chris\\Documents\\MAT 261B\\Project_Data\\Study5.xlsx"))
+ai3 = as.data.frame(read_excel("data/Study3.xlsx"))
+ai4 = as.data.frame(read_excel("data/Study4.xlsx"))
+ai5 = as.data.frame(read_excel("data/Study5.xlsx"))
 
 # Rename columns
 names(ai1) = c("Index", "Subject_ID", "gender", "age", "AI_Creativity", "AI_Aesthetics", "AI_Liking", "AI_Refinement",
@@ -272,7 +276,6 @@ c(round(mean(ai1$AI_Liking),2), round(sd(ai1$AI_Liking),2))
 
 ```{r fig-study1f1, fig.cap = "Barplot of mean and standard deviation error bar comparing the ratings between AI and human creator-declared paintings across each evaluation dimension.", echo=FALSE, warning=FALSE}
 #################################### BAR PLOTS #########################################################
-library(dplyr)
 new_name = ai1 %>% 
   rename(Human = HU_Creativity, AI = AI_Creativity) 
 
@@ -335,12 +338,6 @@ p4 = ggplot(data_long, aes(x = fct_rev(Creator), y = Rating, fill = Creator)) +
 ```
 
 ```{r, fig-study1f2, fig.cap = "Linear regression plots of bias in ratings against participant attitude towards AI along each evalution dimension.", echo=FALSE, warning=FALSE}
-
-library(ggplot2)
-library(ggpubr)
-library(tidyr)
-library(forcats)
-library(patchwork)
 
 p1 = ggplot(ai1, aes(x = Attitude, y = Diff_Creativity)) +
   labs(
