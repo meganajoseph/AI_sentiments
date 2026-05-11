@@ -105,18 +105,293 @@ To account for the correlation between responses from a single subject that come
 # Reanalysis {#sec-reanalysis}
 ## Study 1
 ### Paired t-test
-To begin with our reanalysis, we attempted to replicate the t-tables for each evaluation dimension. When using a paired t-test, we were unsuccessful in obtaining the same statistics using the study data uploaded. Believing that the authors may have incorrectly performed independent t-tests, we modified the tests but were still unable to return the correct test statistics and corresponding p-values reported. However, we do note that the mean and standard deviation of each evaluation dimension matches those of the published table; Cohen’s effect size of each measure (creativity, aesthetics, liking, and refinement) were also the same. 
 
-### Bias Index
-The authors also chose to explore the linear relationship between the bias index of each dimension and the participant’s attitude towards AI. We were able to recreate the linear plots with almost perfect accuracy; besides some small rounding differences in the $R^2$ values, we were able to confirm the regression results. Unfortunately, when studying the table of regression coefficients, we found that these $\Beta$ values were scaled by an inconsistent factor across dimensions. It is concerning that the standard errors, t-statistics, and p-values of the regression summary matched our output; it is impossible for the reported $Beta$ coefficients to simultaneously hold. 
+To begin with our reanalysis, we attempted to replicate the t-tables for each evaluation dimension. When using a paired t-test, we were unsuccessful in obtaining the same statistics using the study data uploaded. Believing that the authors may have incorrectly performed independent t-tests, we modified the tests but were still unable to return the correct test statistics and corresponding p-values reported. However, we do note that the mean and standard deviation of each evaluation dimension matches those of the published table (barplots in @fig-study1f1); Cohen’s effect size of each measure (creativity, aesthetics, liking, and refinement) were also the same. Full comparisons of t-test and effect size results are displayed in appendix (@fig-study1_table1-comparison).
+
+
+The authors also chose to explore the linear relationship between the bias index of each dimension and the participant’s attitude towards AI (@fig-study1f2). We were able to recreate the linear plots with almost perfect accuracy; besides some small rounding differences in the $R^2$ values, we were able to confirm the regression results. Unfortunately, when studying the table of regression coefficients, we found that these $\Beta$ values were scaled by an inconsistent factor across dimensions. It is concerning that the standard errors, t-statistics, and p-values of the regression summary matched our output; it is impossible for the reported $Beta$ coefficients to simultaneously hold. 
 There is a separate model of the following form for each evaluation dimension:
 
 Note: Bias Index (Ratings for specific dimension): $$Bias = \frac{1}{n} \sum^n_1 \textbf{R}_{human} - \frac{1}{n} \textbf{R}_{AI}$$
 
 $$Y_i = \Beta_0 + \Beta_1 * X$$, where $Y_i$ is the predicted bias index, $\Beta_0$ represents the intercept (bias index for a participant with a score of 0 for attitude towards AI), and $\Beta_1$ represents the expected change in bias index for a 1 unit increase in the scores regarding attitude towards AI. 
 
-These regression plots and significance in paired t-tests for differences in mean are intended to “prove” that there is an inherent bias for those with negative opinions towards artificial intelligence and how they rate AI-generated artworks. The authors utilized the results of Study 1 as a justification for further analysis conducted in the subsequent 4 studies; thus, the mismatch in reported statistics is concerning when the authors proceeded with similar study design. Though it is tempting to declare presence of the evaluative bias, there are many weaknesses in data accuracy and experimental design that prevent us from being confident in the results. 
+These regression plots and significance in paired t-tests for differences in mean are intended to “prove” that there is an inherent bias for those with negative opinions towards artificial intelligence and how they rate AI-generated artworks. The authors utilized the results of Study 1 as a justification for further analysis conducted in the subsequent 4 studies; thus, the mismatch in reported statistics is concerning when the authors proceeded with similar study design. Though it is tempting to declare presence of the evaluative bias, there are many weaknesses in data accuracy and experimental design that prevent us from being confident in the results. The full summary and comparison of regression results are in the appendix (@fig-study1_table2-comparison).
 
+```{r, echo = FALSE, results='hide'}
+## DATA CLEANING FOR STUDIES
+library(pwr)
+pwr.t.test(n=60, sig.level=0.05, power=0.8, type="paired")
+
+library(readxl)
+library(dplyr)
+
+# Create the dictionary
+translation_map <- c(
+  "序号" = "index",
+  "被试编号：" = "subject_id",
+  "性别：" = "gender",
+  "年龄" = "age",
+  "—创造性" = "creativity",
+  "审美价值" = "aesthetic_value",
+  "喜爱程度" = "liking",
+  "精细程度" = "refinement"
+)
+# Standardized Renaming Function for Data 
+translate_columns <- function(df) {
+  old_names <- colnames(df)
+  new_names <- old_names
+  
+  for (i in seq_along(old_names)) {
+    # Extract any numbers (e.g., "4" or "81")
+    num <- gsub("[^0-9]", "", old_names[i]) 
+    
+    # 1. Handle Demographics & Basics
+    if (grepl("index|序号", old_names[i], ignore.case = TRUE)) { 
+      new_names[i] <- "index" 
+    }
+    else if (grepl("被试编号", old_names[i])) { 
+      new_names[i] <- "subject_id" 
+    }
+    else if (grepl("gender|性别", old_names[i], ignore.case = TRUE)) { 
+      new_names[i] <- "gender" 
+    }
+    else if (grepl("年龄", old_names[i])) { 
+      new_names[i] <- "age" 
+    }
+    
+    # 2. Handle the 4 Repeating Criteria (Items 4-80)
+    else if (grepl("创造性", old_names[i])) { new_names[i] <- paste0(num, "_creativity") }
+    else if (grepl("审美", old_names[i])) { new_names[i] <- paste0(num, "_aesthetic") }
+    else if (grepl("喜爱", old_names[i])) { new_names[i] <- paste0(num, "_liking") }
+    else if (grepl("精细|Refinement", old_names[i])) { new_names[i] <- paste0(num, "_refinement") }
+    
+    # 3. Handle the Identification Task (Item 81)
+    else if (grepl("画师员工", old_names[i])) { 
+      new_names[i] <- "81_id_human_artist" 
+    }
+    else if (grepl("普通AI", old_names[i])) { 
+      new_names[i] <- "81_id_standard_ai" 
+    }
+    else if (grepl("SuperPainter", old_names[i], ignore.case = TRUE)) { 
+      new_names[i] <- "81_id_superpainter" 
+    }
+  }
+  return(new_names)
+}
+
+# Read in Data Frames
+ai1 = as.data.frame(read_excel("C:\\Users\\chris\\Documents\\MAT 261B\\Project_Data\\Study1.xlsx"))
+ai2_a = as.data.frame(read_excel("C:\\Users\\chris\\Documents\\MAT 261B\\Project_Data\\Study2.xlsx", sheet = "orderA"))
+ai2_b = as.data.frame(read_excel("C:\\Users\\chris\\Documents\\MAT 261B\\Project_Data\\Study2.xlsx", sheet = "orderB"))
+ai2_c = as.data.frame(read_excel("C:\\Users\\chris\\Documents\\MAT 261B\\Project_Data\\Study2.xlsx", sheet = "orderC"))
+
+# Apply to your dataframes
+colnames(ai2_a) <- translate_columns(ai2_a)
+colnames(ai2_b) <- translate_columns(ai2_b)
+colnames(ai2_c) <- translate_columns(ai2_c)
+
+ai2 = bind_rows(ai2_a, ai2_b, ai2_c)
+
+write.csv(ai1, file="Study1_Cleaned.csv", row.names = FALSE)
+
+ai3 = as.data.frame(read_excel("C:\\Users\\chris\\Documents\\MAT 261B\\Project_Data\\Study3.xlsx"))
+ai4 = as.data.frame(read_excel("C:\\Users\\chris\\Documents\\MAT 261B\\Project_Data\\Study4.xlsx"))
+ai5 = as.data.frame(read_excel("C:\\Users\\chris\\Documents\\MAT 261B\\Project_Data\\Study5.xlsx"))
+
+# Rename columns
+names(ai1) = c("Index", "Subject_ID", "gender", "age", "AI_Creativity", "AI_Aesthetics", "AI_Liking", "AI_Refinement",
+               "HU_Creativity", "HU_Aesthetics", "HU_Liking", "HU_Refinement", "Attitude", "Diff_Creativity", "Diff_Aesthetics",
+               "Diff_Liking", "Diff_Refinement")
+
+
+names(ai4) = c("Subject_ID", "Manipulation_Group", 
+               "HU_Aesthetics", "AI_Aesthetics", 
+               "HU_Profundity", "AI_Profundity", 
+               "HU_Creativity", "AI_Creativity", 
+               "HU_Liking", "AI_Liking", 
+               "HU_Awe", "AI_Awe", 
+               "HU_Enchantment", "AI_Enchantment", 
+               "HU_Pleasure", "AI_Pleasure", 
+               "HU_Vitality", "AI_Vitality", 
+               "HU_Interest", "AI_Interest", 
+               "HU_Insight", "AI_Insight", 
+               "HU_Boredom", "AI_Boredom", 
+               "HU_Unease", "AI_Unease", 
+               "HU_Sadness", "AI_Sadness", 
+               "HU_Valence", "AI_Valence", 
+               "HU_Arousal", "AI_Arousal", 
+               "HU_Emotional_Focus", "AI_Emotional_Focus")
+```
+
+```{r, echo=FALSE, results='hide'}
+#################################### Effect Size #########################################################
+
+# We want an effect size of 0.37
+
+calculate_paired_effect_size <- function(dat, cols) {
+  diff = dat[[cols[2]]]-dat[[cols[1]]]
+  dz = mean(diff)/sd(diff)
+  return(dz)
+}
+
+calculate_paired_effect_size(dat=ai1, cols=c("AI_Creativity", "HU_Creativity"))
+
+calculate_paired_effect_size(dat=ai1, cols=c("AI_Aesthetics", "HU_Aesthetics"))
+
+calculate_paired_effect_size(dat=ai1, cols=c("AI_Liking", "HU_Liking"))
+
+calculate_paired_effect_size(dat=ai1, cols=c("AI_Refinement", "HU_Refinement"))
+
+library(effsize)
+cohen.d(ai1$HU_Creativity, ai1$AI_Creativity, paired = TRUE)
+
+cohen.d(ai1$HU_Aesthetics, ai1$AI_Aesthetics, paired = TRUE)
+
+cohen.d(ai1$HU_Liking, ai1$AI_Liking, paired = TRUE)
+
+cohen.d(ai1$HU_Refinement, ai1$AI_Refinement, paired = TRUE)
+
+t.test(x=ai1$Diff_Creativity, mu=0)
+
+# Repeated for each dimension
+t.test(x=ai1$HU_Creativity, y = ai1$AI_Creativity, paired=TRUE)
+
+
+t.test(ai1$Diff_Aesthetics, mu=0)
+
+c(round(mean(ai1$HU_Creativity),2), round(sd(ai1$HU_Creativity),2))
+c(round(mean(ai1$HU_Aesthetics),2), round(sd(ai1$HU_Aesthetics),2))
+c(round(mean(ai1$HU_Liking),2), round(sd(ai1$HU_Liking),2))
+c(round(mean(ai1$HU_Refinement),2), round(sd(ai1$HU_Refinement),2))
+c(round(mean(ai1$AI_Refinement),2), round(sd(ai1$AI_Refinement),2))
+c(round(mean(ai1$AI_Creativity),2), round(sd(ai1$AI_Creativity),2))
+c(round(mean(ai1$AI_Aesthetics),2), round(sd(ai1$AI_Aesthetics),2))
+c(round(mean(ai1$AI_Liking),2), round(sd(ai1$AI_Liking),2))
+```
+
+```{r fig-study1f1, fig.cap = "Barplot of mean and standard deviation error bar comparing the ratings between AI and human creator-declared paintings across each evaluation dimension.", echo=FALSE, warning=FALSE}
+#################################### BAR PLOTS #########################################################
+library(dplyr)
+new_name = ai1 %>% 
+  rename(Human = HU_Creativity, AI = AI_Creativity) 
+
+data_long = pivot_longer(new_name, cols = c(AI, Human), names_to = "Creator", values_to = "Rating")
+
+# Plot with position = "dodge"
+p1 = ggplot(data_long, aes(x = fct_rev(Creator), y = Rating, fill = Creator)) +
+  geom_bar(stat = "mean", position = "dodge", width=0.4) +
+  stat_summary(fun.data = mean_sd, geom = "errorbar", width = 0.2) + theme_minimal() +
+  labs(
+    title = "Creativity", x="Creator"
+  ) + scale_y_continuous(limits = c(0, 8)) 
+
+######################################################################################
+new_name = ai1 %>% 
+  rename(Human = HU_Aesthetics, AI = AI_Aesthetics) 
+
+data_long = pivot_longer(new_name, cols = c(AI, Human), names_to = "Creator", values_to = "Rating")
+
+# Plot with position = "dodge"
+p2 = ggplot(data_long, aes(x = fct_rev(Creator), y = Rating, fill = Creator)) +
+  geom_bar(stat = "mean", position = "dodge", width=0.4) +
+  stat_summary(fun.data = mean_sd, geom = "errorbar", width = 0.2) + theme_minimal() +
+  labs(
+    title = "Aesthetics", x="Creator"
+  ) + scale_y_continuous(limits = c(0, 9)) 
+
+######################################################################################
+
+new_name = ai1 %>% 
+  rename(Human = HU_Liking, AI = AI_Liking) 
+
+data_long = pivot_longer(new_name, cols = c(AI, Human), names_to = "Creator", values_to = "Rating")
+
+# Plot with position = "dodge"
+p3 = ggplot(data_long, aes(x = fct_rev(Creator), y = Rating, fill = Creator)) +
+  geom_bar(stat = "mean", position = "dodge", width=0.4) +
+  stat_summary(fun.data = mean_sd, geom = "errorbar", width = 0.2) + theme_minimal() +
+  labs(
+    title = "Liking", x="Creator"
+  ) + scale_y_continuous(limits = c(0, 9)) 
+
+######################################################################################
+
+
+new_name = ai1 %>% 
+  rename(Human = HU_Refinement, AI = AI_Refinement) 
+
+data_long = pivot_longer(new_name, cols = c(AI, Human), names_to = "Creator", values_to = "Rating")
+
+# Plot with position = "dodge"
+p4 = ggplot(data_long, aes(x = fct_rev(Creator), y = Rating, fill = Creator)) +
+  geom_bar(stat = "mean", position = "dodge", width=0.4) +
+  stat_summary(fun.data = mean_sd, geom = "errorbar", width = 0.2) + theme_minimal() +
+  labs(
+    title = "Refinement", x="Creator"
+  ) + scale_y_continuous(limits = c(0, 9)) 
+
+(p1 + p2) / (p3 + p4)
+```
+
+```{r, fig-study1f2, fig.cap = "Linear regression plots of bias in ratings against participant attitude towards AI along each evalution dimension.", echo=FALSE, warning=FALSE}
+
+library(ggplot2)
+library(ggpubr)
+library(tidyr)
+library(forcats)
+library(patchwork)
+
+p1 = ggplot(ai1, aes(x = Attitude, y = Diff_Creativity)) +
+  labs(
+    title = "Creativity",
+    x = "Attitude Towards AI",
+    y = "Bias"
+  ) + 
+  geom_point() +
+  # se = TRUE adds the shaded confidence band (standard error)
+  geom_smooth(method = "lm", se = TRUE, color = "blue", fill = "gray") +
+  stat_cor(aes(label = ..rr.label..), label.x = 45, label.y = 2) + # Adds R^2
+  theme_minimal()
+
+p2 = ggplot(ai1, aes(x = Attitude, y = Diff_Aesthetics)) +
+  labs(
+    title = "Aesthetics",
+    x = "Attitude Towards AI",
+    y = "Bias"
+  ) + 
+  geom_point() +
+  # se = TRUE adds the shaded confidence band (standard error)
+  geom_smooth(method = "lm", se = TRUE, color = "blue", fill = "gray") +
+  stat_cor(aes(label = ..rr.label..), label.x = 45, label.y = 2.5) + # Adds R^2
+  theme_minimal()
+
+p3 = ggplot(ai1, aes(x = Attitude, y = Diff_Liking)) +
+  labs(
+    title = "Liking",
+    x = "Attitude Towards AI",
+    y = "Bias"
+  ) + 
+  geom_point() +
+  # se = TRUE adds the shaded confidence band (standard error)
+  geom_smooth(method = "lm", se = TRUE, color = "blue", fill = "gray") +
+  stat_cor(aes(label = ..rr.label..), label.x = 45, label.y = 2.5) + # Adds R^2
+  theme_minimal()
+
+p4 = ggplot(ai1, aes(x = Attitude, y = Diff_Refinement)) +
+  labs(
+    title = "Refinement",
+    x = "Attitude Towards AI",
+    y = "Bias"
+  ) + 
+  geom_point() +
+  # se = TRUE adds the shaded confidence band (standard error)
+  geom_smooth(method = "lm", se = TRUE, color = "blue", fill = "gray") +
+  stat_cor(aes(label = ..rr.label..), label.x = 45, label.y = 2.5) + # Adds R^2
+  theme_minimal()
+
+(p1 + p2) / (p3 + p4)
+```
 
 
 
@@ -264,5 +539,20 @@ We implement the reanalysis using R [@r_language]. Power analyses done with GPOW
 For Study 1, we were able to replicate the power analysis but not the t-tests or linear regression fully. For Study 2, we were able to replicate the power analysis and Friedman test but not the ANOVAs. Since we were unable to replicate the parts of the studies directly relating to the research question, we can’t make any claims toward it. However, it seems consistent across literature that a bias does exist against AI-generated artwork. 
 
 Across both studies we reanalyzed, we observed unexpected inconsistencies in data reporting and limitations within the experimental designs. To improve on this, we would need access to the actual data the researchers used if truly different from what is available. Additionally, justifying decisions made in the design would allow us to replicate the results fully. On our end, we could do a re-analysis of the rest of the studies in the paper and investigate if a multivariate analysis would produce different results. 
+
+# Appendix
+
+```{r}
+#| label: fig-study1_table1-comparison
+#| fig-cap: "Comparison of published and reanalyzed independent t-test results in Study 1."
+knitr::include_graphics("images\study1_table1_comparison.png")
+```
+
+```{r}
+#| label: fig-study1_table2-comparison
+#| fig-cap: "Comparison of published and reanalyzed linear regression summary in Study 1."
+knitr::include_graphics("images\study1_table2_comparison.png")
+```
+
 
 # References
