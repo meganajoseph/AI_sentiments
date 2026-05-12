@@ -26,14 +26,13 @@ library(tidyverse)
 library(ggpubr)
 library(knitr)
 library(kableExtra)
-
-library(ggplot2)
 library(tidyr)
 library(forcats)
 library(patchwork)
 library(pwr)
 library(readxl)
 library(dplyr)
+library(effsize)
 ```
 
 # Introduction
@@ -94,17 +93,25 @@ This study is a repeated measures within-subject design. They first conduct four
 ## Study 2
 The dataset we used came from the real data collected by the researchers. The observational unit is a single participant. The participants were, again, all of Chinese ethnicity with a mean age of around 22 years old and majority female. The relevant variables are the creativity, aesthetic, liking, and refinement ratings for each painting and the ranking of effort of human, ordinary AI, and Superpainter. The data was collected by requiring each of the 60 participants to rate the 78 paintings along the four dimensions. Then, they had to rank how much effort humans, ordinary AI, and Superpainter put into their paintings, which is referred to as the manipulation check.
 
-This study is a repeated measures within-subject design with three conditions: human, ordinary AI, and Superpainter. They conduct a Friedman test on the manipulation check. A Friedman test is a non-parametric repeated measures ANOVA approach to ranking statistics. This was used to check if there is a statistical difference between the participants' perceived effort rankings of human, ordinary AI, and Superpainter AI. The null and alternative hypotheses are 
+This study is a repeated measures within-subject design with three conditions: human, ordinary AI, and Superpainter. They conduct a Friedman test on the manipulation check. A Friedman test is a non-parametric repeated measures ANOVA approach to ranking statistics. This was used to check if there is a statistical difference between the participants' perceived effort rankings of human, ordinary AI, and Superpainter AI. The null and alternative hypotheses are
+
 $H_0$: There is no significant difference between the rankings of perceived effort between the human, AI, and superpainter paintings.
+
 $H_a$: There is at least one significantly different ranking result of perceived effort than the others.
+
 The Friedman test statistic is calculated as follows: $$\chi^2=\frac{12}{nK(K+1}\sum R^2_j-3n(K+1)$$
 Where
+
 n= number of participants
+
 K = number of conditions
+
 $R^2_j$ = the squared rank sums
 
-Next, they perform a series of ANOVAs on the four main dimensions. The null and alternative hypotheses for all four comparison metrics are:
+Next, they perform a series of ANOVAs on the four main dimensions. Each simultaneous ANOVA analysis is done with no mention of a correction for multiple testing. The null and alternative hypotheses for all four comparison metrics are:
+
 $H_0:$ There are no significantly different evaluation means ( creativity, aesthetic, liking, and refinement) between human, AI, and Superpainter AI paintings.
+
 $H_a:$ There is at least one significantly different evaluation mean between human, AI, and Superpainter AI paintings. 
 
 To account for the correlation between responses from a single subject that comes from repeated measures, they collapse the observations into the mean. This was performed in order to determine whether a difference between human, ordinary AI, and Superpainter exists across the dimensions. 
@@ -199,36 +206,14 @@ ai2 = bind_rows(ai2_a, ai2_b, ai2_c)
 
 write.csv(ai1, file="Study1_Cleaned.csv", row.names = FALSE)
 
-ai3 = as.data.frame(read_excel("data/Study3.xlsx"))
-ai4 = as.data.frame(read_excel("data/Study4.xlsx"))
-ai5 = as.data.frame(read_excel("data/Study5.xlsx"))
 
 # Rename columns
 names(ai1) = c("Index", "Subject_ID", "gender", "age", "AI_Creativity", "AI_Aesthetics", "AI_Liking", "AI_Refinement",
                "HU_Creativity", "HU_Aesthetics", "HU_Liking", "HU_Refinement", "Attitude", "Diff_Creativity", "Diff_Aesthetics",
                "Diff_Liking", "Diff_Refinement")
-
-
-names(ai4) = c("Subject_ID", "Manipulation_Group", 
-               "HU_Aesthetics", "AI_Aesthetics", 
-               "HU_Profundity", "AI_Profundity", 
-               "HU_Creativity", "AI_Creativity", 
-               "HU_Liking", "AI_Liking", 
-               "HU_Awe", "AI_Awe", 
-               "HU_Enchantment", "AI_Enchantment", 
-               "HU_Pleasure", "AI_Pleasure", 
-               "HU_Vitality", "AI_Vitality", 
-               "HU_Interest", "AI_Interest", 
-               "HU_Insight", "AI_Insight", 
-               "HU_Boredom", "AI_Boredom", 
-               "HU_Unease", "AI_Unease", 
-               "HU_Sadness", "AI_Sadness", 
-               "HU_Valence", "AI_Valence", 
-               "HU_Arousal", "AI_Arousal", 
-               "HU_Emotional_Focus", "AI_Emotional_Focus")
 ```
 
-```{r, echo=FALSE, results='hide'}
+```{r, echo=FALSE,warning=FALSE,message=FALSE, results='hide'}
 #################################### Effect Size #########################################################
 
 # We want an effect size of 0.37
@@ -247,7 +232,7 @@ calculate_paired_effect_size(dat=ai1, cols=c("AI_Liking", "HU_Liking"))
 
 calculate_paired_effect_size(dat=ai1, cols=c("AI_Refinement", "HU_Refinement"))
 
-library(effsize)
+
 cohen.d(ai1$HU_Creativity, ai1$AI_Creativity, paired = TRUE)
 
 cohen.d(ai1$HU_Aesthetics, ai1$AI_Aesthetics, paired = TRUE)
@@ -274,7 +259,7 @@ c(round(mean(ai1$AI_Aesthetics),2), round(sd(ai1$AI_Aesthetics),2))
 c(round(mean(ai1$AI_Liking),2), round(sd(ai1$AI_Liking),2))
 ```
 
-```{r fig-study1f1, fig.cap = "Barplot of mean and standard deviation error bar comparing the ratings between AI and human creator-declared paintings across each evaluation dimension.", echo=FALSE, warning=FALSE}
+```{r fig-study1f1, fig.cap = "Barplot of mean and standard deviation error bar comparing the ratings between AI and human creator-declared paintings across each evaluation dimension.", echo=FALSE,message=FALSE, warning=FALSE}
 #################################### BAR PLOTS #########################################################
 new_name = ai1 %>% 
   rename(Human = HU_Creativity, AI = AI_Creativity) 
@@ -399,6 +384,7 @@ Where
 n= number of participants
 K = number of conditions
 $R^2_j$ = the squared rank sums
+
 ```{r}
 #| echo: false
 #| include: false
@@ -416,8 +402,22 @@ friedman.test(study2_p1)
 #Effect size W
 79.633/(60*(3-1))
 ```
+Our Friedman test results in a $\chi^2$ value of 79.633, with an associated p value < 2.2e-16 and effect size W=0.66, which successfully replicates the original manipulation check done in Study 2.
+
 ### Repeated Measures ANOVA
-Then, we move on to the repeated measures ANOVA analysis of the four comparison metrics, creativity, aesthetic, liking, and refinement within conditions (human, AI, Superpainter AI). It is evident that the data obtained from the study's supplemental materials is different from the reported study 2 data, just from a closer comparison of the summary statistics between the study in [@fig-study2summary] and our reanalysis in [@fig-study2resummary]. Additionally, the results of a one-factor repeated measures ANOVA on all 4 comparison metrics reveals no significant differences between any of the conditions. As an additional illustration, we attempt to reproduce the barplots shown in the published paper for the barplot in [@fig-study2bar] in the reanalysis in [@fig-study2rebar], but also fail to reproduce the graphic due to no true difference in the means between the human, AI, and superpainter AI rating scores on all four evaluation metrics. The pilot study 2 data in [@fig-pilotstudy2bar] interestingly has more visual similarities with the data revaluation than the claimed study 2 data. Since we were unable to reproduce the results from this study, we can not make any claims based on our analysis in regards to our research question.
+Then, we move on to the repeated measures ANOVA analysis of the four comparison metrics, creativity, aesthetic, liking, and refinement within conditions (human, AI, Superpainter AI). For each comparison metric we fit a model $$Y_{ij}=\mu+\alpha_i+\tau_j+\epsilon_{ij}$$ 
+
+Where $Y_{ij}$ represents the comparison metric (creativity, aesthetic, liking, or refinement) for the $i^{th}$ subject and $j^{th}$ condition,
+
+$\mu$ represents the mean,
+
+$\alpha_i$ represents the fixed condition effect (human, AI, Superpainter AI),
+
+$\tau_j$ represents the random subject effect, N(0,$\sigma^2_\tau$),
+
+$\epsilon$ represents the error, N(0,$\sigma^2$).
+
+It is evident that the data obtained from the study's supplemental materials is different from the reported study 2 data, just from a closer comparison of the summary statistics between the study in [@fig-study2summary] and our reanalysis in [@fig-study2resummary]. Additionally, the results of a one-factor repeated measures ANOVA on all 4 comparison metrics reveals no significant differences between any of the conditions. As an additional illustration, we attempt to reproduce the barplots shown in the published paper for the barplot in [@fig-study2bar] in the reanalysis in [@fig-study2rebar], but also fail to reproduce the graphic due to no true difference in the means between the human, AI, and superpainter AI rating scores on all four evaluation metrics. 
 
 ```{r}
 #| echo: false
@@ -466,9 +466,9 @@ plot_data <- participant_means %>%
   summarize(N=length(value),Ratings=round(mean(value),2), sd=round(sd(value),2))
 ```
 
-```{r fig-study2rebar, out.width="300px"}
+```{r fig-study2rebar, out.width="500px"}
 #| echo: false
-#| fig-cap: "Attempted reproduction of the barplot in Figure (?). The differences among the ratings of Human label, Ordinary AI label, and Superpainter label, accquired from the published Study 2 data."
+#| fig-cap: "Attempted reproduction of the barplot in Figure 4. The differences among the ratings of Human label, Ordinary AI label, and Superpainter label, accquired from the published Study 2 data."
 ggplot(plot_data, aes(x=condition,y=Ratings, fill=condition))+
   facet_wrap((~name)) +
   theme_minimal(base_size=13) +
@@ -481,13 +481,13 @@ ggplot(plot_data, aes(x=condition,y=Ratings, fill=condition))+
   geom_errorbar(aes(ymin=Ratings-sd,ymax=Ratings+sd),width=.15)
 ```
 
-```{r fig-pilotstudy2bar,out.width="300px"}
+```{r fig-pilotstudy2bar,out.width="400px"}
 #| echo: false
 #| fig-cap: "The results of robustness check in Study 2. To make sure the significant differences between the ratings of the three conditions in Study 2 were caused by the label only instead of the paintings themselves, a series of ANOVAs were conducted on the ratings of the paintings without labels in Pilot Study 2 and there were no significant differences of the four dimensions. Note, the error bars represent the standard deviation; 'ns' denotes nonsignificant."
 include_graphics("images/figS5.png")
 ```
 
-```{r fig-study2bar, out.width="300px"}
+```{r fig-study2bar, out.width="500px"}
 #| echo: false
 #| fig-cap: "The differences among the ratings of Human label, Ordinary AI label, and Superpainter label. Note, the error bars represent the standard deviation; *p < .05, **p < .01, ***p < .001."
 include_graphics("images/fig2.png")
@@ -501,13 +501,13 @@ kable(plot_data) %>%
 
 ```
 
-```{r fig-study2summary, out.width="300px"}
+```{r fig-study2summary, out.width="400px"}
 #| echo: false
-#| fig-cap: "Summary Table on descriptive statistcs. Means given for each combination of condition and evaluation metric."
+#| fig-cap: "Summary Table on descriptive statistcs in Study 2's Original Paper. Means given for each combination of condition and evaluation metric."
 include_graphics("images/tables4.png")
 ```
 
-``` {r fig-study2anova}
+``` {r fig-study2anova,out.width="400px"}
 #| echo: false
 #| fig-cap: "ANOVA Results of Repeated Measures Within Condition. F and p-values given for Creativity, Aesthetic, Liking, and Refinement."
 # Repeated measures within condition
@@ -529,27 +529,28 @@ results[2:3]=apply(results[2:3],1:2, round, digits=2)
 kable(results)
 ```
 ## Software
-We implement the reanalysis using R [@r_language]. Power analyses done with GPOWER [@GPOWER]. Plots done with ggpubr
-[@ggpubr]. Data manipulation done with tidyerse [@tidyverse]. Tables done with knitr [@knitr].
+We implement the reanalysis using R [@r_language]. Power analyses done with GPOWER [@GPOWER] and effsize [@effsize]. Plots done with ggpubr
+[@ggpubr], forcats [@forcats] and patchwork [@patchwork]. Data manipulation done with tidyverse [@tidyverse]. Tables done with knitr [@knitr] and kableExtra [@kableExtra]. Excel file reading done with readxl [@readxl].
 
 # Discussion {#sec-discussion}
-For Study 1, we were able to replicate the power analysis but not the t-tests or linear regression fully. For Study 2, we were able to replicate the power analysis and Friedman test but not the ANOVAs. Since we were unable to replicate the parts of the studies directly relating to the research question, we can’t make any claims toward it. However, it seems consistent across literature that a bias does exist against AI-generated artwork. 
+For Study 1, we were able to replicate the power analysis but not the t-tests or linear regression fully. For Study 2, we were able to replicate the power analysis and Friedman test but not the ANOVAs. Since we were unable to replicate the parts of the studies directly relating to the research question, we can’t make any claims toward it. However, it seems consistent across literature that a bias does exist against AI-generated artwork. The pilot study 2 data in [@fig-pilotstudy2bar] interestingly has more visual similarities with the data revaluation than the claimed study 2 data. Since we were unable to reproduce the results from this study, we can not make any claims based on our analysis in regards to our research question. One concern was that no multiple testing corrections were claimed to be done on the studies, but since our values were not significant in our reproduction of Study 2, corrections were no longer needed.
 
 Across both studies we reanalyzed, we observed unexpected inconsistencies in data reporting and limitations within the experimental designs. To improve on this, we would need access to the actual data the researchers used if truly different from what is available. Additionally, justifying decisions made in the design would allow us to replicate the results fully. On our end, we could do a re-analysis of the rest of the studies in the paper and investigate if a multivariate analysis would produce different results. 
 
 # Appendix
 
 ```{r}
+#| echo: false
 #| label: fig-study1_table1-comparison
 #| fig-cap: "Comparison of published and reanalyzed independent t-test results in Study 1."
-knitr::include_graphics("images\study1_table1_comparison.png")
+knitr::include_graphics("images\\study1_table1_comparison.png")
 ```
 
 ```{r}
+#| echo: false
 #| label: fig-study1_table2-comparison
 #| fig-cap: "Comparison of published and reanalyzed linear regression summary in Study 1."
-knitr::include_graphics("images\study1_table2_comparison.png")
+knitr::include_graphics("images\\study1_table2_comparison.png")
 ```
-
 
 # References
